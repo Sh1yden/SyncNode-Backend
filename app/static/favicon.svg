@@ -1,0 +1,13 @@
+<svg width="256" height="256" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="120" fill="#1f1f28"/>
+
+  <!-- Основная форма - Заметка -->
+  <rect x="146" y="146" width="220" height="220" rx="40" fill="#957fb8"/>
+
+  <!-- Вырез в форме бесконечности (Old White или цвет фона для макс контраста) -->
+  <path d="M120 256C120 180 200 180 256 256C312 332 392 332 392 256"
+        stroke="#1f1f28" stroke-width="60" stroke-linecap="round"/>
+  <path d="M120 256C120 332 200 332 256 256C312 180 392 180 392 256"
+        stroke="#dcd7ba" stroke-width="60" stroke-linecap="round"/>
+
+</svg>

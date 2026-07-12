@@ -36,7 +36,7 @@
 | Поле            | Тип          | Ограничения                             | Описание                                |
 | --------------- | ------------ | --------------------------------------- | --------------------------------------- |
 | id              | UUID         | Primary Key, default=uuid_generate_v4() | Уникальный идентификатор пользователя.  |
-| email_or_name   | VARCHAR(255) | Unique, Not Null                        | Имя пользователя или почта, для входа.  |
+| name            | VARCHAR(255) | Unique, Not Null                        | Имя пользователя для входа.             |
 | hashed_password | VARCHAR(255) | Not Null                                | Хеш пароля пользователя.(Bcrypt/Argon2) |
 | created_at      | TIMESTAMP    | Not Null, default=now()                 | Дата регистрации/создания пользователя. |
 

@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Фон (Sumi Ink) -->
+  <rect width="512" height="512" rx="120" fill="#1f1f28"/>
+
+  <!-- 1. ЗАДНЯЯ ЧАСТЬ КОЛЬЦА (скрыта за заметкой) -->
+  <path d="M210 256C210 180 120 180 120 256C120 332 210 332 256 256C302 180 392 180 392 256C392 332 302 332 256 256"
+        stroke="#dcd7ba" stroke-width="45" stroke-linecap="round" opacity="0.3"/>
+
+  <!-- 2. ЦЕНТРАЛЬНАЯ ЗАМЕТКА (Onion Purple) -->
+  <rect x="196" y="186" width="120" height="150" rx="30" fill="#1f1f28" stroke="#957fb8" stroke-width="45"/>
+  <!-- Линии внутри заметки -->
+  <line x1="230" y1="235" x2="282" y2="235" stroke="#957fb8" stroke-width="20" stroke-linecap="round"/>
+  <line x1="230" y1="285" x2="282" y2="285" stroke="#957fb8" stroke-width="20" stroke-linecap="round"/>
+
+  <!-- 3. ПЕРЕДНЯЯ ЧАСТЬ КОЛЬЦА (перекрывает заметку) -->
+  <path d="M120 256C120 332 210 332 256 256C302 180 392 180 392 256"
+        stroke="#dcd7ba" stroke-width="45" stroke-linecap="round"/>
+</svg>

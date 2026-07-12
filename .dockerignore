@@ -1,0 +1,13 @@
+.env
+.gitignore
+.git
+.github
+.vscode
+
+logs
+tests
+Dockerfile
+docker-compose.yml
+README.md
+LICENSE
+
