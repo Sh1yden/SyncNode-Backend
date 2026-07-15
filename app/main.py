@@ -15,7 +15,7 @@ except PackageNotFoundError:
     _version = "1.0.0"
 
 _lg = get_logger("SyncNode")
-setup_logging("DEBUG")
+setup_logging(settings.LOG_LEVEL)
 
 _lg.debug("Creating the app...")
 

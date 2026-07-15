@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from app.core.config import settings
+from app.core import settings
 
 engine = create_async_engine(
-    settings.database_url,
+    settings.postgres_url,
     pool_size=20,
     max_overflow=10,
     pool_timeout=30,

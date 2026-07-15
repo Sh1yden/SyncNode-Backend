@@ -1,5 +1,6 @@
 import asyncio
 from logging.config import fileConfig
+from os import wait
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -14,7 +15,7 @@ from app.database.models import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.postgres_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

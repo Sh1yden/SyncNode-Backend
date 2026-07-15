@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>SyncNode — тест CRDT-синхронизации</title>
+<style>
+  :root {
+    --bg: #1e1e1e;
+    --panel: #252526;
+    --border: #3c3c3c;
+    --text: #d4d4d4;
+    --muted: #8a8a8a;
+    --accent: #4fa8da;
+    --accent-hover: #6bb8e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 0 16px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1 { font-size: 18px; font-weight: 600; }
+  p.hint { font-size: 13px; color: var(--muted); }
+  code {
+    background: var(--panel);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+  .field { margin-bottom: 10px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input {
+    width: 100%;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 13px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  button {
+    padding: 8px 16px;
+    margin-top: 4px;
+    margin-right: 8px;
+    cursor: pointer;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  #status-bar {
+    margin: 16px 0;
+    padding: 8px 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  #editor {
+    width: 100%;
+    height: 300px;
+    padding: 12px;
+    font-size: 15px;
+    font-family: monospace;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    resize: vertical;
+  }
+  #editor:focus { outline: none; border-color: var(--accent); }
+  #editor:disabled { background: #202020; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>SyncNode — тест синхронизации заметки</h1>
+<p class="hint">
+  Открой эту страницу в двух вкладках (можно на разных ПК, если бэкенд
+  доступен снаружи), введи одинаковый <code>note_id</code> и валидный
+  токен в каждой, нажми «Подключиться». Текст, набранный в одной вкладке,
+  должен появиться в другой через сервер.
+</p>
+
+<div class="field">
+  <label for="server-url">Базовый WS-адрес (до note_id)</label>
+  <input id="server-url">
+</div>
+<div class="field">
+  <label for="note-id">note_id</label>
+  <input id="note-id" placeholder="например, 56a70abf-0805-447e-9972-123edf7e3a0e">
+</div>
+<div class="field">
+  <label for="token">access_token</label>
+  <input id="token" placeholder="вставь сюда access_token">
+</div>
+<button id="connect-btn">Подключиться</button>
+<button id="disconnect-btn">Отключиться</button>
+
+<div id="status-bar">Не подключено</div>
+
+<textarea id="editor" disabled placeholder="Появится после подключения..."></textarea>
+
+<script type="importmap">
+{
+  "imports": {
+    "yjs": "https://rozek.github.io/yjs-bundle/dist/yjs-bundle.esm.js",
+    "y-websocket": "https://rozek.github.io/yjs-bundle/dist/yjs-bundle.esm.js"
+  }
+}
+</script>
+<script type="module">
+  // yjs и y-websocket оба ведут на ОДИН И ТОТ ЖЕ файл yjs-bundle —
+  // он специально пакует их вместе, чтобы Yjs не грузился дважды
+  // (двойная загрузка ломает internal instanceof-проверки CRDT).
+  import * as Y from "yjs";
+  import { WebsocketProvider } from "y-websocket";
+
+  const connectBtn = document.getElementById("connect-btn");
+  const disconnectBtn = document.getElementById("disconnect-btn");
+  const statusBar = document.getElementById("status-bar");
+  const editor = document.getElementById("editor");
+  const serverUrlInput = document.getElementById("server-url");
+
+  // Раз страница теперь отдаётся самой апишкой — подставляем адрес
+  // текущего хоста автоматически. Работает и локально, и через туннель,
+  // без ручного редактирования поля. Путь можно подправить руками,
+  // если у тебя другой префикс роутов.
+  const defaultScheme = location.protocol === "https:" ? "wss:" : "ws:";
+  serverUrlInput.value = `${defaultScheme}//${location.host}/v1/notes`;
+
+  let provider = null;
+
+  disconnectBtn.addEventListener("click", () => {
+    if (provider) {
+      // disconnect() останавливает и авто-реконнект, в отличие
+      // от простого закрытия сокета — именно это нужно, если
+      // сервер закрывает соединение сразу (например, из-за
+      // истёкшего токена) и провайдер долбится по кругу.
+      provider.disconnect();
+      provider.destroy();
+      provider = null;
+    }
+    editor.disabled = true;
+    statusBar.textContent = "Отключено вручную";
+  });
+
+  connectBtn.addEventListener("click", () => {
+    const serverUrl = serverUrlInput.value.trim();
+    const noteId = document.getElementById("note-id").value.trim();
+    const token = document.getElementById("token").value.trim();
+
+    if (!serverUrl || !noteId || !token) {
+      statusBar.textContent = "Заполни все три поля.";
+      return;
+    }
+
+    if (provider) {
+      provider.destroy();
+    }
+
+    const ydoc = new Y.Doc();
+    const ytext = ydoc.getText("content");
+
+    // disableBc: true — важно! иначе y-websocket может синхронизировать
+    // вкладки напрямую через BroadcastChannel, в обход твоего сервера,
+    // и тест ничего не докажет.
+    provider = new WebsocketProvider(
+      serverUrl,
+      `${noteId}/sync`,
+      ydoc,
+      {
+        params: { token },
+        disableBc: true,
+      }
+    );
+
+    provider.on("status", (event) => {
+      statusBar.textContent = `Статус соединения: ${event.status}`;
+    });
+
+    provider.on("connection-error", (event) => {
+      statusBar.textContent = `Ошибка соединения (см. консоль браузера)`;
+      console.error("WebSocket connection error:", event);
+    });
+
+    provider.on("sync", (isSynced) => {
+      statusBar.textContent = isSynced
+        ? "Подключено и синхронизировано"
+        : "Подключено, синхронизация...";
+      editor.disabled = false;
+    });
+
+    editor.value = ytext.toString();
+
+    ytext.observe(() => {
+      if (document.activeElement !== editor) {
+        editor.value = ytext.toString();
+      }
+    });
+
+    editor.addEventListener("input", () => {
+      ydoc.transact(() => {
+        ytext.delete(0, ytext.length);
+        ytext.insert(0, editor.value);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,8 +1,11 @@
 services:
   app:
-    container_name: syncnode
+    container_name: syncnode_api
     build: .
     restart: always
+    environment:
+      - LOG_LEVEL=WARN
+      - POSTGRES_HOST=postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,7 +43,7 @@ services:
       - default
 
   redis:
-    container_name: redis
+    container_name: syncnode_cache
     image: redis:8-alpine
     restart: unless-stopped
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
