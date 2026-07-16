@@ -6,6 +6,9 @@ services:
     environment:
       - LOG_LEVEL=WARN
       - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - POSTGRES_PORT=5432
+      - REDIS_PORT=6379
     depends_on:
       postgres:
         condition: service_healthy

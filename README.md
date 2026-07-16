@@ -13,7 +13,7 @@
 - Миграции: `Alembic`.
 - Брокер сообщений и кэширование: `Redis`.
 - Валидация данных: `Pydantic v2`.
-- Веб-фреймворк: `FastAPI` + `Uvicorn`.
+- Веб-фреймворк: `FastAPI` + `Uvicorn`(`uvloop` & `httptools`).
 - Синхронизационный движок: `py-crdt`.
 - Инфраструктура: `Docker` & `Docker Compose`.
 
