@@ -115,6 +115,46 @@ async def delete_note(
     return {"detail": "Note deleted."}
 
 
+@router.patch(
+    "/{note_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=NoteResponseSchema,
+    summary="Update a note path (rename).",
+)
+async def rename_note(
+    note_id: UUID,
+    payload: NoteCreateSchema,
+    current_user: Users = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> NoteResponseSchema:
+    result = await db.execute(select(Notes).where(Notes.id == note_id))
+    note = result.scalar_one_or_none()
+    if note is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found.")
+    if note.owner_id != current_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "Only the owner can rename a note."
+        )
+
+    duplicate = await db.execute(
+        select(Notes).where(
+            Notes.owner_id == current_user.id,
+            Notes.path == payload.path,
+            Notes.id != note_id,
+        )
+    )
+    if duplicate.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Another note with this path already exists.",
+        )
+
+    note.path = payload.path
+    await db.commit()
+    await db.refresh(note)
+    return NoteResponseSchema.model_validate(note)
+
+
 @router.get(
     "/{note_id}/content",
     status_code=status.HTTP_200_OK,
