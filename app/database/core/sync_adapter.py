@@ -1,10 +1,6 @@
 """Адаптер, оборачивающий FastAPI WebSocket в протокол pycrdt-websocket."""
 
-import logging
-
 from fastapi import WebSocket
-
-_log = logging.getLogger("syncnode.sync_adapter")
 
 
 class FastAPIWebsocketAdapter:
@@ -31,8 +27,4 @@ class FastAPIWebsocketAdapter:
         return self
 
     async def __anext__(self) -> bytes:
-        try:
-            return await self.recv()
-        except Exception as exc:
-            _log.warning("recv() ended iteration for %s: %r", self._path, exc)
-            raise StopAsyncIteration
+        return await self.recv()
