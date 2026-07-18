@@ -21,19 +21,36 @@ router = APIRouter(prefix="/notes", tags=["notes"])
 
 @router.post(
     "",
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     response_model=NoteResponseSchema,
-    summary="Create a new note.",
+    summary="Create a new note (or return existing one with same path).",
 )
 async def create_note(
     payload: NoteCreateSchema,
     current_user: Users = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> NoteResponseSchema:
+    existing = await db.execute(
+        select(Notes).where(
+            Notes.owner_id == current_user.id,
+            Notes.path == payload.path,
+        )
+    )
+    note = existing.scalar_one_or_none()
+    if note is not None:
+        return NoteResponseSchema.model_validate(note)
+
     note = Notes(owner_id=current_user.id, path=payload.path)
     db.add(note)
-    await db.commit()
-    await db.refresh(note)
+    try:
+        await db.commit()
+        await db.refresh(note)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A note with this path already exists.",
+        )
     return NoteResponseSchema.model_validate(note)
 
 
@@ -77,14 +94,14 @@ async def get_note(
 
 @router.delete(
     "/{note_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     summary="Delete a note.",
 )
 async def delete_note(
     note_id: UUID,
     current_user: Users = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> None:
+) -> dict:
     result = await db.execute(select(Notes).where(Notes.id == note_id))
     note = result.scalar_one_or_none()
     if note is None:
@@ -95,6 +112,7 @@ async def delete_note(
         )
     await db.delete(note)
     await db.commit()
+    return {"detail": "Note deleted."}
 
 
 @router.get(

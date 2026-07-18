@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 from enum import Enum
 
-from sqlalchemy import ForeignKey, Enum as SAEnum, LargeBinary, String, DateTime, func
+from sqlalchemy import ForeignKey, Enum as SAEnum, LargeBinary, String, DateTime, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -38,7 +38,10 @@ class Users(Base):
 
 class Notes(Base):
     __tablename__ = "notes"
-    __table_args__ = {"extend_existing": True}
+    __table_args__ = (
+        UniqueConstraint("owner_id", "path", name="uq_notes_owner_path"),
+        {"extend_existing": True},
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="cascade"))
