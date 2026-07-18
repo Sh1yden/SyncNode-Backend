@@ -24,6 +24,19 @@ class NoteResponseSchema(BaseNoteSchema):
     updated_at: datetime
 
 
+class NoteContentResponseSchema(BaseNoteSchema):
+    content: str
+    updated_at: datetime
+
+
 class CollaboratorAddSchema(BaseNoteSchema):
     user_id: UUID
+    access_level: AccessLevel
+
+
+class CollaboratorResponseSchema(BaseNoteSchema):
+    id: UUID
+    note_id: UUID
+    user_id: UUID
+    user_name: str
     access_level: AccessLevel

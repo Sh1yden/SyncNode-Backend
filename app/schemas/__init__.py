@@ -12,4 +12,6 @@ from .notes import (
     NoteCreateSchema,
     NoteResponseSchema,
     CollaboratorAddSchema,
+    CollaboratorResponseSchema,
+    NoteContentResponseSchema,
 )

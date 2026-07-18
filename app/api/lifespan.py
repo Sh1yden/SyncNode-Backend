@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.database.core import websocket_server
+from app.database.core import websocket_server, cleanup_rooms
 from app.core import get_logger
 
 _lg = get_logger()
@@ -22,3 +22,4 @@ async def lifespan(app: FastAPI):
         raise
     finally:
         _lg.debug("API closing...")
+        await cleanup_rooms()

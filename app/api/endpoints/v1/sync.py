@@ -1,5 +1,6 @@
 """WebSocket-эндпоинт синхронизации заметок (CRDT)."""
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Query, WebSocket
@@ -75,6 +76,7 @@ async def _persist_snapshot(note_id: UUID, room) -> None:
         if note is None:
             return
         note.crdt_state = snapshot
+        note.updated_at = datetime.now(timezone.utc)
         await db.commit()
 
 
