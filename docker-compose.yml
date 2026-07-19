@@ -4,7 +4,6 @@ services:
     build: .
     restart: always
     environment:
-      - LOG_LEVEL=WARN
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
       - POSTGRES_PORT=5432
@@ -50,6 +49,8 @@ services:
     image: redis:8-alpine
     restart: unless-stopped
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    env_file:
+      - .env
     ports:
       - "${REDIS_PORT}:6379"
     volumes:

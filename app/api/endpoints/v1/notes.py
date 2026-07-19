@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -173,6 +174,35 @@ async def get_note_content(
 
     return NoteContentResponseSchema(
         content=content,
+        updated_at=note.updated_at,
+    )
+
+
+@router.put(
+    "/{note_id}/content",
+    status_code=status.HTTP_200_OK,
+    response_model=NoteContentResponseSchema,
+    summary="Upload text content for a note (converts to CRDT state).",
+)
+async def upload_note_content(
+    note_id: UUID,
+    payload: NoteContentResponseSchema,
+    note: Notes = Depends(require_note_access(AccessLevel.write)),
+    db: AsyncSession = Depends(get_db),
+) -> NoteContentResponseSchema:
+    from pycrdt import Doc, Text
+
+    doc = Doc()
+    text = doc.get("content", type=Text)
+    text += payload.content
+
+    note.crdt_state = doc.get_update()
+    note.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(note)
+
+    return NoteContentResponseSchema(
+        content=payload.content,
         updated_at=note.updated_at,
     )
 

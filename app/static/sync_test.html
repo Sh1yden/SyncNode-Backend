@@ -11,7 +11,6 @@
     --text: #d4d4d4;
     --muted: #8a8a8a;
     --accent: #4fa8da;
-    --accent-hover: #6bb8e2;
   }
   * { box-sizing: border-box; }
   body {
@@ -22,186 +21,246 @@
     background: var(--bg);
     color: var(--text);
   }
-  h1 { font-size: 18px; font-weight: 600; }
-  p.hint { font-size: 13px; color: var(--muted); }
+  h2 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; }
+  h3 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+  .hint { font-size: 13px; color: var(--muted); }
   code {
     background: var(--panel);
     padding: 1px 5px;
     border-radius: 3px;
     color: var(--accent);
   }
-  .field { margin-bottom: 10px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  input {
-    width: 100%;
-    padding: 8px;
-    font-family: monospace;
-    font-size: 13px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
+  .row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
+  .row label { min-width: 100px; font-size: 13px; color: var(--muted); }
+  .row input, .row select {
+    flex: 1; min-width: 200px; padding: 6px 8px; font-family: monospace; font-size: 13px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 4px; color: var(--text);
   }
-  input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
+  .row input:focus, .row select:focus { outline: none; border-color: var(--accent); }
   button {
-    padding: 8px 16px;
-    margin-top: 4px;
-    margin-right: 8px;
-    cursor: pointer;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-size: 13px;
+    padding: 6px 14px; cursor: pointer; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 13px;
   }
   button:hover { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { border-color: var(--accent); }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px;
+  }
+  .badge.ok { background: #1b3a1b; color: #4caf50; }
+  .badge.fail { background: #3a1b1b; color: #f44336; }
+  .badge.warn { background: #3a3a1b; color: #ff9800; }
   #status-bar {
-    margin: 16px 0;
-    padding: 8px 12px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 13px;
-    color: var(--muted);
+    padding: 8px 12px; margin: 10px 0; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 4px; font-size: 13px; color: var(--muted);
   }
   #editor {
-    width: 100%;
-    height: 300px;
-    padding: 12px;
-    font-size: 15px;
-    font-family: monospace;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    resize: vertical;
+    width: 100%; height: 300px; padding: 12px; font-size: 15px; font-family: monospace;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); resize: vertical;
   }
   #editor:focus { outline: none; border-color: var(--accent); }
   #editor:disabled { background: #202020; color: #666; }
+  .section { border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
 
-<h1>SyncNode — тест синхронизации заметки</h1>
+<h2>SyncNode — тест CRDT-синхронизации</h2>
 <p class="hint">
-  Открой эту страницу в двух вкладках (можно на разных ПК, если бэкенд
-  доступен снаружи), введи одинаковый <code>note_id</code> и валидный
-  токен в каждой, нажми «Подключиться». Текст, набранный в одной вкладке,
-  должен появиться в другой через сервер.
+  Открой эту страницу в двух вкладках, пройди авторизацию и создай заметку.
+  Текст, набранный в одной вкладке, появится в другой через CRDT-сервер.
 </p>
 
-<div class="field">
-  <label for="server-url">Базовый WS-адрес (до note_id)</label>
-  <input id="server-url">
+<!-- Auth -->
+<div class="section" id="auth-section">
+  <h3>Авторизация</h3>
+  <div class="row">
+    <label>Username</label>
+    <input id="auth-username" placeholder="username" value="">
+  </div>
+  <div class="row">
+    <label>Password</label>
+    <input id="auth-password" type="password" placeholder="password" value="">
+  </div>
+  <div class="row">
+    <button class="primary" id="auth-login-btn">Login</button>
+    <button id="auth-register-btn">Register</button>
+    <span id="auth-status" class="badge fail">Not authenticated</span>
+  </div>
 </div>
-<div class="field">
-  <label for="note-id">note_id</label>
-  <input id="note-id" placeholder="например, 56a70abf-0805-447e-9972-123edf7e3a0e">
-</div>
-<div class="field">
-  <label for="token">access_token</label>
-  <input id="token" placeholder="вставь сюда access_token">
-</div>
-<button id="connect-btn">Подключиться</button>
-<button id="disconnect-btn">Отключиться</button>
 
-<div id="status-bar">Не подключено</div>
+<!-- Notes -->
+<div class="section" id="notes-section">
+  <h3>Заметка</h3>
+  <div class="row">
+    <label>Path</label>
+    <input id="note-path" placeholder="например, test.md" value="sync-test.md">
+  </div>
+  <div class="row">
+    <button class="primary" id="note-create-btn">Create / Get</button>
+    <span id="note-status" class="badge warn">No note</span>
+  </div>
+</div>
 
-<textarea id="editor" disabled placeholder="Появится после подключения..."></textarea>
+<!-- Sync -->
+<div class="section" id="sync-section">
+  <h3>Синхронизация</h3>
+  <div class="row">
+    <button class="primary" id="connect-btn">Подключиться</button>
+    <button id="disconnect-btn">Отключиться</button>
+  </div>
+  <div id="status-bar">Не подключено</div>
+  <textarea id="editor" disabled placeholder="Нажми «Подключиться»..."></textarea>
+</div>
 
 <script type="importmap">
 {
   "imports": {
-    "yjs": "https://rozek.github.io/yjs-bundle/dist/yjs-bundle.esm.js",
-    "y-websocket": "https://rozek.github.io/yjs-bundle/dist/yjs-bundle.esm.js"
+    "yjs": "https://cdn.jsdelivr.net/npm/yjs@13.6.22/+esm",
+    "y-websocket": "https://cdn.jsdelivr.net/npm/y-websocket@2.0.4/+esm"
   }
 }
 </script>
 <script type="module">
-  // yjs и y-websocket оба ведут на ОДИН И ТОТ ЖЕ файл yjs-bundle —
-  // он специально пакует их вместе, чтобы Yjs не грузился дважды
-  // (двойная загрузка ломает internal instanceof-проверки CRDT).
-  import * as Y from "yjs";
-  import { WebsocketProvider } from "y-websocket";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
 
-  const connectBtn = document.getElementById("connect-btn");
-  const disconnectBtn = document.getElementById("disconnect-btn");
-  const statusBar = document.getElementById("status-bar");
-  const editor = document.getElementById("editor");
-  const serverUrlInput = document.getElementById("server-url");
+// ── State ─────────────────────────────────────────────────────
+const state = {
+  serverUrl: `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`,
+  httpUrl: `${location.protocol}//${location.host}`,
+  token: null,
+  noteId: null,
+  provider: null,
+  ydoc: null,
+};
 
-  // Раз страница теперь отдаётся самой апишкой — подставляем адрес
-  // текущего хоста автоматически. Работает и локально, и через туннель,
-  // без ручного редактирования поля. Путь можно подправить руками,
-  // если у тебя другой префикс роутов.
-  const defaultScheme = location.protocol === "https:" ? "wss:" : "ws:";
-  serverUrlInput.value = `${defaultScheme}//${location.host}/v1/notes`;
+// ── DOM refs ───────────────────────────────────────────────────
+const authStatusEl = document.getElementById("auth-status");
+const noteStatusEl = document.getElementById("note-status");
+const statusBar = document.getElementById("status-bar");
+const editor = document.getElementById("editor");
 
-  let provider = null;
+// ── HTTP helpers ───────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { "Content-Type": "application/json" } };
+  if (state.token) opts.headers["Authorization"] = `Bearer ${state.token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const resp = await fetch(`${state.httpUrl}${path}`, opts);
+  const text = await resp.text();
+  if (!resp.ok) throw new Error(`${resp.status}: ${text}`);
+  return text ? JSON.parse(text) : null;
+}
 
-  disconnectBtn.addEventListener("click", () => {
-    if (provider) {
-      // disconnect() останавливает и авто-реконнект, в отличие
-      // от простого закрытия сокета — именно это нужно, если
-      // сервер закрывает соединение сразу (например, из-за
-      // истёкшего токена) и провайдер долбится по кругу.
-      provider.disconnect();
-      provider.destroy();
-      provider = null;
-    }
-    editor.disabled = true;
-    statusBar.textContent = "Отключено вручную";
+function setAuthStatus(ok, msg) {
+  authStatusEl.className = `badge ${ok ? "ok" : "fail"}`;
+  authStatusEl.textContent = msg;
+}
+
+function setNoteStatus(ok, msg) {
+  noteStatusEl.className = `badge ${ok ? "ok" : "warn"}`;
+  noteStatusEl.textContent = msg;
+}
+
+function log(msg, level = "info") {
+  statusBar.textContent = msg;
+  console.log(`[SyncNode] ${msg}`);
+}
+
+// ── Auth ───────────────────────────────────────────────────────
+document.getElementById("auth-login-btn").addEventListener("click", async () => {
+  const name = document.getElementById("auth-username").value.trim();
+  const password = document.getElementById("auth-password").value.trim();
+  if (!name || !password) { log("Fill username and password."); return; }
+  try {
+    const res = await api("POST", "/v1/auth/login", { name, password });
+    state.token = res.access_token;
+    setAuthStatus(true, `Logged in as ${name}`);
+    log("Auth OK");
+  } catch (e) {
+    setAuthStatus(false, "Login failed");
+    log(`Login error: ${e.message}`);
+  }
+});
+
+document.getElementById("auth-register-btn").addEventListener("click", async () => {
+  const name = document.getElementById("auth-username").value.trim();
+  const password = document.getElementById("auth-password").value.trim();
+  if (!name || !password) { log("Fill username and password."); return; }
+  try {
+    const res = await api("POST", "/v1/auth/register", { name, password });
+    state.token = res.access_token;
+    setAuthStatus(true, `Registered as ${name}`);
+    log("Register OK");
+  } catch (e) {
+    setAuthStatus(false, "Register failed (maybe user exists)");
+    log(`Register error: ${e.message}`);
+  }
+});
+
+// ── Notes ──────────────────────────────────────────────────────
+document.getElementById("note-create-btn").addEventListener("click", async () => {
+  if (!state.token) { log("Auth first."); return; }
+  const path = document.getElementById("note-path").value.trim();
+  if (!path) { log("Enter note path."); return; }
+  try {
+    const res = await api("POST", "/v1/notes", { path });
+    state.noteId = res.id;
+    setNoteStatus(true, `ID: ${res.id.slice(0, 8)}... (${res.path})`);
+    log(`Note ready: ${res.id}`);
+    document.getElementById("connect-btn").disabled = false;
+  } catch (e) {
+    setNoteStatus(false, "Create failed");
+    log(`Note error: ${e.message}`);
+  }
+});
+
+// ── Sync ───────────────────────────────────────────────────────
+document.getElementById("disconnect-btn").addEventListener("click", () => {
+  if (state.provider) {
+    state.provider.disconnect();
+    state.provider.destroy();
+    state.provider = null;
+  }
+  if (state.ydoc) {
+    state.ydoc.destroy();
+    state.ydoc = null;
+  }
+  editor.disabled = true;
+  editor.value = "";
+  log("Disconnected");
+});
+
+document.getElementById("connect-btn").addEventListener("click", () => {
+  if (!state.token || !state.noteId) {
+    log("Auth and create a note first.");
+    return;
+  }
+
+  document.getElementById("disconnect-btn").click();
+
+  const wsBase = `${state.serverUrl}/v1/notes`;
+  state.ydoc = new Y.Doc();
+  const ytext = state.ydoc.getText("content");
+
+  state.provider = new WebsocketProvider(
+    wsBase,
+    `${state.noteId}/sync`,
+    state.ydoc,
+    { params: { token: state.token }, disableBc: true, maxBackoff: 5000 },
+  );
+
+  state.provider.on("status", (ev) => log(`Status: ${ev.status}`));
+  state.provider.on("connection-error", (ev) => {
+    log("Connection error (see console)", "error");
+    console.error(ev);
   });
 
-  connectBtn.addEventListener("click", () => {
-    const serverUrl = serverUrlInput.value.trim();
-    const noteId = document.getElementById("note-id").value.trim();
-    const token = document.getElementById("token").value.trim();
-
-    if (!serverUrl || !noteId || !token) {
-      statusBar.textContent = "Заполни все три поля.";
-      return;
-    }
-
-    if (provider) {
-      provider.destroy();
-    }
-
-    const ydoc = new Y.Doc();
-    const ytext = ydoc.getText("content");
-
-    // disableBc: true — важно! иначе y-websocket может синхронизировать
-    // вкладки напрямую через BroadcastChannel, в обход твоего сервера,
-    // и тест ничего не докажет.
-    provider = new WebsocketProvider(
-      serverUrl,
-      `${noteId}/sync`,
-      ydoc,
-      {
-        params: { token },
-        disableBc: true,
-      }
-    );
-
-    provider.on("status", (event) => {
-      statusBar.textContent = `Статус соединения: ${event.status}`;
-    });
-
-    provider.on("connection-error", (event) => {
-      statusBar.textContent = `Ошибка соединения (см. консоль браузера)`;
-      console.error("WebSocket connection error:", event);
-    });
-
-    provider.on("sync", (isSynced) => {
-      statusBar.textContent = isSynced
-        ? "Подключено и синхронизировано"
-        : "Подключено, синхронизация...";
-      editor.disabled = false;
-    });
-
+  state.provider.on("sync", (synced) => {
+    if (!synced) { log("Syncing..."); return; }
+    log("Connected & synced");
+    editor.disabled = false;
     editor.value = ytext.toString();
 
     ytext.observe(() => {
@@ -211,12 +270,13 @@
     });
 
     editor.addEventListener("input", () => {
-      ydoc.transact(() => {
+      state.ydoc.transact(() => {
         ytext.delete(0, ytext.length);
         ytext.insert(0, editor.value);
       });
     });
   });
+});
 </script>
 
 </body>

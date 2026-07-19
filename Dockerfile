@@ -12,5 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# uvicorn app.main:app --host 0.0.0.0 --port 8001 --loop uvloop --http httptools --log-level warning
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--loop", "uvloop", "--http", "httptools", "--log-level", "warning"]
+# uvicorn app.main:app --host 0.0.0.0 --port 8001 --loop uvloop --http httptools --log-level (choice in.env)
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port 8001 --loop uvloop --http httptools --log-level $LOG_LEVEL"]
