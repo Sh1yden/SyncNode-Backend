@@ -101,6 +101,13 @@
     <button class="primary" id="note-create-btn">Create / Get</button>
     <span id="note-status" class="badge warn">No note</span>
   </div>
+  <div class="row">
+    <label>Note ID (manual)</label>
+    <input id="note-id-input" placeholder="вставьте syncnode-id из Obsidian">
+  </div>
+  <div class="row">
+    <button id="note-id-set-btn">Set ID</button>
+  </div>
 </div>
 
 <!-- Sync -->
@@ -114,18 +121,8 @@
   <textarea id="editor" disabled placeholder="Нажми «Подключиться»..."></textarea>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "yjs": "https://cdn.jsdelivr.net/npm/yjs@13.6.22/+esm",
-    "y-websocket": "https://cdn.jsdelivr.net/npm/y-websocket@2.0.4/+esm"
-  }
-}
-</script>
-<script type="module">
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
-
+<script src="/v1/mvp/syncnode-bundle.js"></script>
+<script>
 // ── State ─────────────────────────────────────────────────────
 const state = {
   serverUrl: `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`,
@@ -216,6 +213,16 @@ document.getElementById("note-create-btn").addEventListener("click", async () =>
   }
 });
 
+// ── Manual Note ID ─────────────────────────────────────────────
+document.getElementById("note-id-set-btn").addEventListener("click", () => {
+  const id = document.getElementById("note-id-input").value.trim();
+  if (!id) { log("Enter a note ID."); return; }
+  state.noteId = id;
+  setNoteStatus(true, `ID: ${id.slice(0, 8)}... (manual)`);
+  document.getElementById("connect-btn").disabled = false;
+  log(`Note ID set: ${id}`);
+});
+
 // ── Sync ───────────────────────────────────────────────────────
 document.getElementById("disconnect-btn").addEventListener("click", () => {
   if (state.provider) {
@@ -231,6 +238,21 @@ document.getElementById("disconnect-btn").addEventListener("click", () => {
   editor.value = "";
   log("Disconnected");
 });
+
+// Периодически проверяем, не появился ли контент в Yjs (на случай
+// что sync-событие пришло до получения данных).
+let contentCheckTimer = null;
+function startContentPoll(ytext) {
+  if (contentCheckTimer) clearInterval(contentCheckTimer);
+  contentCheckTimer = setInterval(() => {
+    if (!state.ydoc) { clearInterval(contentCheckTimer); contentCheckTimer = null; return; }
+    const t = ytext.toString();
+    if (t && editor.value !== t) {
+      log(`Content appeared via poll: "${t.slice(0,40)}..."`);
+      editor.value = t;
+    }
+  }, 500);
+}
 
 document.getElementById("connect-btn").addEventListener("click", () => {
   if (!state.token || !state.noteId) {
@@ -257,26 +279,29 @@ document.getElementById("connect-btn").addEventListener("click", () => {
     console.error(ev);
   });
 
+  const onYtextChange = () => {
+    editor.value = ytext.toString();
+    log(`Content updated: "${editor.value.slice(0,40)}..."`);
+  };
+
   state.provider.on("sync", (synced) => {
     if (!synced) { log("Syncing..."); return; }
     log("Connected & synced");
     editor.disabled = false;
-    editor.value = ytext.toString();
+    onYtextChange();
+    startContentPoll(ytext);
+  });
 
-    ytext.observe(() => {
-      if (document.activeElement !== editor) {
-        editor.value = ytext.toString();
-      }
-    });
+  ytext.observe(onYtextChange);
 
-    editor.addEventListener("input", () => {
-      state.ydoc.transact(() => {
-        ytext.delete(0, ytext.length);
-        ytext.insert(0, editor.value);
-      });
+  editor.addEventListener("input", () => {
+    state.ydoc.transact(() => {
+      ytext.delete(0, ytext.length);
+      ytext.insert(0, editor.value);
     });
   });
 });
+</script>
 </script>
 
 </body>

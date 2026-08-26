@@ -15,6 +15,10 @@ async def sync_test_page() -> FileResponse:
     return FileResponse(_STATIC_DIR / "sync_test.html", media_type="text/html")
 
 
+@router.get("/syncnode-bundle.js")
+async def serve_bundle() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "syncnode-bundle.js", media_type="application/javascript")
+
 @router.get("/test")
 async def sync_test_redirect(request: Request) -> RedirectResponse:
     return RedirectResponse(url=request.url_for("sync_test_page"))

@@ -95,4 +95,9 @@ async def notes_sync(
         await _hydrate_room(note_id, db)
 
     adapter = FastAPIWebsocketAdapter(websocket, path=str(note_id))
-    await websocket_server.serve(adapter)
+    try:
+        await websocket_server.serve(adapter)
+    finally:
+        room_name = str(note_id)
+        if room_name not in websocket_server.rooms:
+            hydrated_rooms.discard(room_name)

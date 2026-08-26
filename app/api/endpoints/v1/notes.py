@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import get_current_user, require_note_access
-from app.database.core import get_db
+from app.database.core import get_db, websocket_server
 from app.database.models import AccessLevel, Notes, NotesCollaborators, Users
 from app.schemas import (
     CollaboratorAddSchema,
@@ -200,6 +200,13 @@ async def upload_note_content(
     note.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(note)
+
+    room = websocket_server.rooms.get(str(note_id))
+    if room is not None:
+        room_text = room.ydoc.get("content", type=Text)
+        with room.ydoc.transaction():
+            room_text.clear()
+            room_text += payload.content
 
     return NoteContentResponseSchema(
         content=payload.content,
